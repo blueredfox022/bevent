@@ -43,9 +43,8 @@ class EventController extends Controller
                 'location' => $request->location,
                 'event_date' => $request->event_date,
                 'event_time' => $request->event_time,
-                'quota' => $request->quota,
-                'use_certificate' => $request->use_certificate,
-                'banner' => $bannerPath,
+                'quota' => (int) $request->quota,
+                'use_certificate' => filter_var($request->use_certificate, FILTER_VALIDATE_BOOLEAN),
             ]);
 
             return response()->json($event);
