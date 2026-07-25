@@ -18,43 +18,47 @@ class EventController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'location' => 'required|string|max:255',
-            'event_date' => 'required|date',
-            'event_time' => 'required',
-            'quota' => 'required|integer|min:0',
-            'use_certificate' => 'required|boolean',
-            'banner' => 'nullable|image|max:2048',
-        ]);
+        try {
 
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'required|string',
+                'location' => 'required|string|max:255',
+                'event_date' => 'required|date',
+                'event_time' => 'required',
+                'quota' => 'required|integer|min:0',
+                'use_certificate' => 'required|boolean',
+                'banner' => 'nullable|image|max:2048',
+            ]);
 
-        $bannerPath = null;
+            $bannerPath = null;
 
-        if ($request->hasFile('banner')) {
-            $bannerPath = $request
-                ->file('banner')
-                ->store('events', 'public');
+            if ($request->hasFile('banner')) {
+                $bannerPath = $request->file('banner')->store('events', 'public');
+            }
+
+            $event = Event::create([
+                'title' => $request->title,
+                'description' => $request->description,
+                'location' => $request->location,
+                'event_date' => $request->event_date,
+                'event_time' => $request->event_time,
+                'quota' => $request->quota,
+                'use_certificate' => $request->use_certificate,
+                'banner' => $bannerPath,
+            ]);
+
+            return response()->json($event);
+        } catch (\Throwable $e) {
+
+            Log::error($e);
+
+            return response()->json([
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ], 500);
         }
-
-
-        $event = Event::create([
-            'title' => $request->title,
-            'description' => $request->description,
-            'location' => $request->location,
-            'event_date' => $request->event_date,
-            'event_time' => $request->event_time,
-            'quota' => $request->quota,
-            'use_certificate' => $request->use_certificate,
-            'banner' => $bannerPath,
-        ]);
-
-
-        return response()->json([
-            'message' => 'Event berhasil dibuat',
-            'data' => $event
-        ], 201);
     }
 
 
