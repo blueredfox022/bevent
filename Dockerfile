@@ -6,11 +6,14 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     libzip-dev \
+    libpq-dev \
     default-mysql-client
 
 RUN docker-php-ext-install \
     pdo \
-    pdo_mysql
+    pdo_mysql \
+    pdo_pgsql \
+    pgsql
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
