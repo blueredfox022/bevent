@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class EventController extends Controller
 {
@@ -43,8 +45,12 @@ class EventController extends Controller
                 'location' => $request->location,
                 'event_date' => $request->event_date,
                 'event_time' => $request->event_time,
-                'quota' => (int) $request->quota,
-                'use_certificate' => filter_var($request->use_certificate, FILTER_VALIDATE_BOOLEAN),
+                'quota' => (int)$request->quota,
+                'use_certificate' => filter_var(
+                    $request->use_certificate,
+                    FILTER_VALIDATE_BOOLEAN
+                ),
+                'banner' => $bannerPath,
             ]);
 
             return response()->json($event);
@@ -116,6 +122,9 @@ class EventController extends Controller
     public function destroy($id)
     {
         $event = Event::findOrFail($id);
+        if ($event->banner) {
+            Storage::disk('public')->delete($event->banner);
+        }
 
         $event->delete();
 
