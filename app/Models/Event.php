@@ -13,8 +13,8 @@ class Event extends Model
         'event_date',
         'event_time',
         'quota',
-        'banner',
         'use_certificate',
+        'banner',
     ];
 
     public function participants()

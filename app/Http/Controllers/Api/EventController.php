@@ -20,52 +20,54 @@ class EventController extends Controller
 
     public function store(Request $request)
     {
-        try {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'location' => 'required|string|max:255',
+            'event_date' => 'required|date',
+            'event_time' => 'required',
+            'quota' => 'required|integer|min:0',
+            'use_certificate' => 'required|boolean',
+            'banner' => 'nullable|image|max:2048',
+        ]);
 
-            $request->validate([
-                'title' => 'required|string|max:255',
-                'description' => 'required|string',
-                'location' => 'required|string|max:255',
-                'event_date' => 'required|date',
-                'event_time' => 'required',
-                'quota' => 'required|integer|min:0',
-                'use_certificate' => 'required|boolean',
-                'banner' => 'nullable|image|max:2048',
-            ]);
+        try {
 
             $bannerPath = null;
 
             if ($request->hasFile('banner')) {
-                $bannerPath = $request->file('banner')->store('events', 'public');
+
+                $bannerPath = $request->file('banner')->store(
+                    'events',
+                    's3'
+                );
             }
 
             $event = Event::create([
-                'title' => $request->title,
-                'description' => $request->description,
-                'location' => $request->location,
-                'event_date' => $request->event_date,
-                'event_time' => $request->event_time,
-                'quota' => (int)$request->quota,
-                'use_certificate' => filter_var(
-                    $request->use_certificate,
-                    FILTER_VALIDATE_BOOLEAN
-                ),
+                'title' => $validated['title'],
+                'description' => $validated['description'],
+                'location' => $validated['location'],
+                'event_date' => $validated['event_date'],
+                'event_time' => $validated['event_time'],
+                'quota' => $validated['quota'],
+                'use_certificate' => $validated['use_certificate'],
                 'banner' => $bannerPath,
             ]);
 
-            return response()->json($event);
+            return response()->json([
+                'message' => 'Event berhasil dibuat',
+                'data' => $event,
+            ], 201);
         } catch (\Throwable $e) {
 
             Log::error($e);
 
             return response()->json([
                 'message' => $e->getMessage(),
-                'line' => $e->getLine(),
-                'file' => $e->getFile(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
             ], 500);
         }
     }
-
 
     public function show($id)
     {
@@ -94,9 +96,11 @@ class EventController extends Controller
 
 
         if ($request->hasFile('banner')) {
-            $bannerPath = $request
-                ->file('banner')
-                ->store('events', 'public');
+
+            $bannerPath = $request->file('banner')->store(
+                'events',
+                's3'
+            );
         }
 
 
@@ -123,7 +127,8 @@ class EventController extends Controller
     {
         $event = Event::findOrFail($id);
         if ($event->banner) {
-            Storage::disk('public')->delete($event->banner);
+            Storage::disk('s3')
+                ->delete($event->banner);
         }
 
         $event->delete();
