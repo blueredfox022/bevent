@@ -13,12 +13,14 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
+use Illuminate\Support\Facades\Log;
+
 
 class ParticipantController extends Controller
 {
     public function register(Request $request, $eventId)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'nim' => ['required', 'digits_between:8,20'],
             'email' => ['required', 'email'],
@@ -27,117 +29,115 @@ class ParticipantController extends Controller
             'department' => 'required|string|max:255',
         ]);
 
-        $event = Event::findOrFail($eventId);
-
-        // Cek kuota
-        if (
-            $event->quota > 0 &&
-            $event->participants()->count() >= $event->quota
-        ) {
-            return response()->json([
-                'message' => 'Kuota event telah penuh.'
-            ], 400);
-        }
-
-        // Cek NIM
-        if (
-            Participant::where('event_id', $event->id)
-            ->where('nim', $request->nim)
-            ->exists()
-        ) {
-            return response()->json([
-                'message' => 'NIM sudah terdaftar pada event ini.'
-            ], 400);
-        }
-
-        // Cek Email
-        if (
-            Participant::where('event_id', $event->id)
-            ->where('email', $request->email)
-            ->exists()
-        ) {
-            return response()->json([
-                'message' => 'Email sudah digunakan pada event ini.'
-            ], 400);
-        }
-
-        // Generate Token
-        $qrToken = strtoupper(Str::random(10));
-
-        // Simpan Peserta
-        $participant = Participant::create([
-            'event_id' => $event->id,
-            'name' => $request->name,
-            'nim' => $request->nim,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'faculty' => $request->faculty,
-            'department' => $request->department,
-            'qr_token' => $qrToken,
-            'attendance_status' => false,
-        ]);
-
-        $participant->load('event');
-
-        // Nama File
-        $fileName = 'participant_' . $participant->id . '.png';
-
-        // Generate QR PNG
-        $result = Builder::create()
-            ->writer(new PngWriter())
-            ->data($participant->qr_token)
-            ->size(800)
-            ->margin(20)
-            ->build();
-
-        // Simpan ke storage
-        Storage::disk('public')->put(
-            'qrcodes/' . $fileName,
-            $result->getString()
-        );
-
-        // Simpan nama file ke database
-        $participant->update([
-            'qr_image' => $fileName
-        ]);
-
-        // URL untuk frontend React
-        $qrUrl = asset('storage/qrcodes/' . $fileName);
-
-        // Path file untuk email
-        $qrPath = storage_path(
-            'app/public/qrcodes/' . $fileName
-        );
-
-        // Kirim email
         try {
-            Mail::to($participant->email)
-                ->send(
-                    new RegistrationMail(
-                        $participant,
-                        $qrPath
-                    )
-                );
+
+            $event = Event::findOrFail($eventId);
+
+            // Cek kuota
+            if (
+                $event->quota > 0 &&
+                $event->participants()->count() >= $event->quota
+            ) {
+                return response()->json([
+                    'message' => 'Kuota event telah penuh.'
+                ], 400);
+            }
+
+            // Cek NIM
+            if (
+                Participant::where('event_id', $event->id)
+                ->where('nim', $validated['nim'])
+                ->exists()
+            ) {
+                return response()->json([
+                    'message' => 'NIM sudah terdaftar pada event ini.'
+                ], 400);
+            }
+
+            // Cek Email
+            if (
+                Participant::where('event_id', $event->id)
+                ->where('email', $validated['email'])
+                ->exists()
+            ) {
+                return response()->json([
+                    'message' => 'Email sudah digunakan pada event ini.'
+                ], 400);
+            }
+
+            // Generate Token QR
+            $qrToken = strtoupper(Str::random(10));
+
+            // Simpan peserta
+            $participant = Participant::create([
+                'event_id' => $event->id,
+                'name' => $validated['name'],
+                'nim' => $validated['nim'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'faculty' => $validated['faculty'],
+                'department' => $validated['department'],
+                'qr_token' => $qrToken,
+                'attendance_status' => false,
+            ]);
+
+            $participant->load('event');
+
+            // Generate QR Code
+            $result = Builder::create()
+                ->writer(new PngWriter())
+                ->data($participant->qr_token)
+                ->size(800)
+                ->margin(20)
+                ->build();
+
+            // Path QR di Supabase Storage
+            $qrPath = 'qrcodes/participant_' . $participant->id . '.png';
+
+            // Upload ke Supabase Storage
+            Storage::disk('s3')->put(
+                $qrPath,
+                $result->getString()
+            );
+
+            // Simpan path QR ke database
+            $participant->update([
+                'qr_image' => $qrPath,
+            ]);
+
+            // URL QR
+            $qrUrl = Storage::disk('s3')->url($qrPath);
+
+            /*
+        |--------------------------------------------------------------------------
+        | Kirim Email
+        |--------------------------------------------------------------------------
+        | Sementara belum kita ubah.
+        | Setelah mekanisme QR final, baru kita sesuaikan RegistrationMail.
+        */
+
+            // Mail::to($participant->email)
+            //     ->send(new RegistrationMail($participant, $qrUrl));
+
+            return response()->json([
+                'message' => 'Registrasi berhasil.',
+                'participant' => $participant->fresh(),
+                'qr_url' => $qrUrl,
+            ], 201);
         } catch (\Throwable $e) {
 
-            \Log::error($e);
+            Log::error($e);
 
             return response()->json([
-                'message' => 'Email gagal dikirim',
-                'error' => $e->getMessage()
+                'message' => $e->getMessage(),
+                'trace' => config('app.debug')
+                    ? $e->getTraceAsString()
+                    : null,
             ], 500);
         }
-
-
-
-        // Response ke frontend
-        return response()->json([
-            'message' => 'Registrasi berhasil.',
-            'participant' => $participant->fresh(),
-            'qr_url' => $qrUrl,
-            'download_qr_url' => url("/api/participants/{$participant->id}/download-qr")
-        ], 201);
     }
+    // Response ke frontend
+
     public function generateQr($id)
     {
         $participant = Participant::findOrFail($id);
