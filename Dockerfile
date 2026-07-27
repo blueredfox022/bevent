@@ -7,9 +7,18 @@ RUN apt-get update && apt-get install -y \
     git \
     libzip-dev \
     libpq-dev \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
     default-mysql-client
 
+RUN docker-php-ext-configure gd \
+    --with-freetype \
+    --with-jpeg
+
 RUN docker-php-ext-install \
+    gd \
+    mbstring \
     pdo \
     pdo_mysql \
     pdo_pgsql \
