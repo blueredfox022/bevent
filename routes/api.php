@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\ParticipantController;
 use App\Http\Controllers\Api\CertificateController;
+use Illuminate\Support\Facades\Mail;
 
 /*
 |--------------------------------------------------------------------------
@@ -78,4 +79,29 @@ Route::middleware('auth:sanctum')->group(function () {
         '/events/{id}/certificates/send',
         [CertificateController::class, 'sendAllByEvent']
     );
+});
+
+
+
+Route::get('/test-email', function () {
+
+    try {
+
+        Mail::raw('Halo, ini adalah email percobaan dari aplikasi Event.', function ($message) {
+
+            $message->to('zulkiflisaleh022@gmail.com') // ganti dengan emailmu
+                ->subject('Test Email Laravel');
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Email berhasil dikirim.'
+        ]);
+    } catch (\Throwable $e) {
+
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
+    }
 });
