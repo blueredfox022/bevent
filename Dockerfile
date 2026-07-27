@@ -10,19 +10,20 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
-    default-mysql-client
-
-RUN docker-php-ext-configure gd \
+    libonig-dev \
+    && docker-php-ext-configure gd \
     --with-freetype \
-    --with-jpeg
-
-RUN docker-php-ext-install \
+    --with-jpeg \
+    && docker-php-ext-install \
     gd \
     mbstring \
+    zip \
     pdo \
     pdo_mysql \
     pdo_pgsql \
-    pgsql
+    pgsql \
+    && rm -rf /var/lib/apt/lists/*
+
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
