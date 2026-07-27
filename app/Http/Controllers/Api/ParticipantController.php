@@ -157,21 +157,15 @@ class ParticipantController extends Controller
     {
         $participant = Participant::findOrFail($id);
 
-        $path = storage_path('app/public/qrcodes/' . $participant->qr_image);
+        $file = Storage::disk('s3')
+            ->get($participant->qr_image);
 
-        if (
-            !$participant->qr_image ||
-            !file_exists($path)
-        ) {
-            return response()->json([
-                'message' => 'QR tidak ditemukan.'
-            ], 404);
-        }
-
-        return response()->download(
-            $path,
-            'QR-' . $participant->name . '.png'
-        );
+        return response($file)
+            ->header('Content-Type', 'image/png')
+            ->header(
+                'Content-Disposition',
+                'attachment; filename="QR-' . $participant->name . '.png"'
+            );
     }
 
     public function scanAttendance(Request $request)
