@@ -106,7 +106,9 @@ class ParticipantController extends Controller
             ]);
 
             // URL QR
-            $qrUrl = Storage::disk('s3')->url($qrPath);
+            $qrUrl = Storage::disk('s3')->url(
+                $participant->qr_image
+            );
 
             /*
         |--------------------------------------------------------------------------
@@ -129,11 +131,11 @@ class ParticipantController extends Controller
             Log::error($e);
 
             return response()->json([
-                'message' => $e->getMessage(),
-                'trace' => config('app.debug')
-                    ? $e->getTraceAsString()
-                    : null,
-            ], 500);
+                'message' => 'Registrasi berhasil.',
+                'participant' => $participant->fresh(),
+                'qr_url' => $qrUrl,
+                'download_qr_url' => url("/api/participants/{$participant->id}/download-qr")
+            ], 201);
         }
     }
     // Response ke frontend
