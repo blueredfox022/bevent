@@ -125,6 +125,7 @@ class ParticipantController extends Controller
                 'message' => 'Registrasi berhasil.',
                 'participant' => $participant->fresh(),
                 'qr_url' => $qrUrl,
+                'download_qr_url' => url("/api/participants/{$participant->id}/download-qr")
             ], 201);
         } catch (\Throwable $e) {
 
@@ -157,17 +158,14 @@ class ParticipantController extends Controller
     {
         $participant = Participant::findOrFail($id);
 
-        $file = Storage::disk('s3')
-            ->get($participant->qr_image);
+        $url = Storage::disk('s3')->url(
+            'qrcodes/' . $participant->qr_image
+        );
 
-        return response($file)
-            ->header('Content-Type', 'image/png')
-            ->header(
-                'Content-Disposition',
-                'attachment; filename="QR-' . $participant->name . '.png"'
-            );
+        return response()->json([
+            'download_url' => $url
+        ]);
     }
-
     public function scanAttendance(Request $request)
     {
         $request->validate([
