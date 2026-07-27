@@ -3,36 +3,67 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Registrasi Berhasil</title>
+    <title>Registrasi Event Berhasil</title>
 </head>
 
-<body style="font-family: Arial, sans-serif">
+<body style="font-family:Arial,sans-serif;background:#f5f5f5;padding:30px;">
 
-    <h2>Registrasi Berhasil</h2>
+    <table width="600" align="center" style="background:#ffffff;padding:30px;border-radius:8px;">
 
-    <p>Halo <strong>{{ $participant->name }}</strong>,</p>
+        <tr>
+            <td align="center">
 
-    <p>
-        Terima kasih telah melakukan registrasi pada event:
-    </p>
+                <h2 style="color:#16a34a;">
+                    Registrasi Berhasil
+                </h2>
 
-    <h3>{{ $participant->event->title }}</h3>
+                <p>
+                    Halo <strong>{{ $participant->name }}</strong>,
+                </p>
 
-    <p>
-        Berikut QR Code Anda.
-    </p>
+                <p>
+                    Terima kasih telah mendaftar pada event:
+                </p>
 
-    <p>
-        Simpan QR Code ini dan tunjukkan saat melakukan absensi.
-    </p>
+                <h3>
+                    {{ $participant->event->title }}
+                </h3>
 
-    <img src="{{ $message->embed($qrPath) }}" width="280" alt="QR Code">
-    <hr>
+                <p>
+                    Berikut adalah QR Code Anda.
+                </p>
 
-    <p>
-        Salam,<br>
-        <strong>Campus Event</strong>
-    </p>
+                <img src="{{ $qrUrl }}" width="260" alt="QR Code">
+
+                <p style="margin-top:25px;">
+                    Gunakan QR Code ini saat melakukan absensi.
+                </p>
+
+                <p style="margin-top:25px;">
+                    <a href="{{ $qrUrl }}"
+                        style="
+                            background:#16a34a;
+                            color:white;
+                            padding:12px 24px;
+                            text-decoration:none;
+                            border-radius:6px;
+                        ">
+                        Download QR Code
+                    </a>
+                </p>
+
+                <hr style="margin:30px 0;">
+
+                <p style="color:#777;">
+                    Salam,
+                    <br>
+                    <strong>Campus Event</strong>
+                </p>
+
+            </td>
+        </tr>
+
+    </table>
 
 </body>
 

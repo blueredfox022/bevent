@@ -21,11 +21,11 @@ class ParticipantController extends Controller
     public function register(Request $request, $eventId)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'nim' => ['required', 'digits_between:8,20'],
-            'email' => ['required', 'email'],
-            'phone' => ['required', 'digits_between:10,15'],
-            'faculty' => 'required|string|max:255',
+            'name'       => 'required|string|max:255',
+            'nim'        => ['required', 'digits_between:8,20'],
+            'email'      => ['required', 'email'],
+            'phone'      => ['required', 'digits_between:10,15'],
+            'faculty'    => 'required|string|max:255',
             'department' => 'required|string|max:255',
         ]);
 
@@ -70,14 +70,14 @@ class ParticipantController extends Controller
 
             // Simpan peserta
             $participant = Participant::create([
-                'event_id' => $event->id,
-                'name' => $validated['name'],
-                'nim' => $validated['nim'],
-                'email' => $validated['email'],
-                'phone' => $validated['phone'],
-                'faculty' => $validated['faculty'],
-                'department' => $validated['department'],
-                'qr_token' => $qrToken,
+                'event_id'          => $event->id,
+                'name'              => $validated['name'],
+                'nim'               => $validated['nim'],
+                'email'             => $validated['email'],
+                'phone'             => $validated['phone'],
+                'faculty'           => $validated['faculty'],
+                'department'        => $validated['department'],
+                'qr_token'          => $qrToken,
                 'attendance_status' => false,
             ]);
 
@@ -91,7 +91,7 @@ class ParticipantController extends Controller
                 ->margin(20)
                 ->build();
 
-            // Path QR di Supabase Storage
+            // Path QR
             $qrPath = 'qrcodes/participant_' . $participant->id . '.png';
 
             // Upload ke Supabase Storage
@@ -100,46 +100,48 @@ class ParticipantController extends Controller
                 $result->getString()
             );
 
-            // Simpan path QR ke database
+            // Simpan path QR
             $participant->update([
                 'qr_image' => $qrPath,
             ]);
 
-            // URL QR
-            $qrUrl = Storage::disk('s3')->url(
-                $participant->qr_image
-            );
+            // Ambil URL Public QR
+            $qrUrl = Storage::disk('s3')->url($participant->qr_image);
 
             /*
         |--------------------------------------------------------------------------
         | Kirim Email
         |--------------------------------------------------------------------------
-        | Sementara belum kita ubah.
-        | Setelah mekanisme QR final, baru kita sesuaikan RegistrationMail.
         */
 
-            // Mail::to($participant->email)
-            //     ->send(new RegistrationMail($participant, $qrUrl));
+            try {
+
+                Mail::to($participant->email)
+                    ->send(new RegistrationMail($participant, $qrUrl));
+            } catch (\Throwable $mailException) {
+
+                Log::error('Gagal mengirim email ke '
+                    . $participant->email . ' : '
+                    . $mailException->getMessage());
+            }
 
             return response()->json([
-                'message' => 'Registrasi berhasil.',
+                'message'     => 'Registrasi berhasil.',
                 'participant' => $participant->fresh(),
-                'qr_url' => $qrUrl,
-                'download_qr_url' => url("/api/participants/{$participant->id}/download-qr")
+                'qr_url'      => $qrUrl,
             ], 201);
         } catch (\Throwable $e) {
 
             Log::error($e);
 
             return response()->json([
-                'message' => 'Registrasi berhasil.',
-                'participant' => $participant->fresh(),
-                'qr_url' => $qrUrl,
-                'download_qr_url' => url("/api/participants/{$participant->id}/download-qr")
-            ], 201);
+                'message' => 'Terjadi kesalahan saat registrasi.',
+                'error'   => config('app.debug')
+                    ? $e->getMessage()
+                    : null,
+            ], 500);
         }
     }
-    // Response ke frontend
 
     public function generateQr($id)
     {
@@ -147,10 +149,7 @@ class ParticipantController extends Controller
 
         return response()->json([
             'participant' => $participant,
-            'qr_url' => asset(
-                'storage/qrcodes/' .
-                    $participant->qr_image
-            )
+            'qr_url' => Storage::disk('s3')->url($participant->qr_image),
         ]);
     }
 
@@ -158,11 +157,9 @@ class ParticipantController extends Controller
     {
         $participant = Participant::findOrFail($id);
 
-        $url = Storage::disk('s3')->url(
-            $participant->qr_image
+        return redirect()->away(
+            Storage::disk('s3')->url($participant->qr_image)
         );
-
-        return redirect($url);
     }
     public function scanAttendance(Request $request)
     {

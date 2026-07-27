@@ -11,21 +11,25 @@ class RegistrationMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $participant;
-    public $qrPath;
+    public Participant $participant;
+    public string $qrUrl;
 
     public function __construct(
         Participant $participant,
-        string $qrPath
+        string $qrUrl
     ) {
         $this->participant = $participant;
-        $this->qrPath = $qrPath;
+        $this->qrUrl = $qrUrl;
     }
 
     public function build()
     {
         return $this
             ->subject('Registrasi Event Berhasil')
-            ->view('emails.registration');
+            ->view('emails.registration')
+            ->with([
+                'participant' => $this->participant,
+                'qrUrl' => $this->qrUrl,
+            ]);
     }
 }
