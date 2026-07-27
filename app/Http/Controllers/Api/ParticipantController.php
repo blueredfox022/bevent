@@ -107,8 +107,9 @@ class ParticipantController extends Controller
 
             // URL QR
             $qrUrl = Storage::disk('s3')->url(
-                'qrcodes/' . $fileName
+                $participant->qr_image
             );
+
             /*
         |--------------------------------------------------------------------------
         | Kirim Email
