@@ -159,12 +159,10 @@ class ParticipantController extends Controller
         $participant = Participant::findOrFail($id);
 
         $url = Storage::disk('s3')->url(
-            'qrcodes/' . $participant->qr_image
+            $participant->qr_image
         );
 
-        return response()->json([
-            'download_url' => $url
-        ]);
+        return redirect($url);
     }
     public function scanAttendance(Request $request)
     {
