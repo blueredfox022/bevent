@@ -110,13 +110,23 @@ class ParticipantController extends Controller
         );
 
         // Kirim email
-        Mail::to($participant->email)
-            ->send(
-                new RegistrationMail(
-                    $participant,
-                    $qrPath
-                )
-            );
+        try {
+            Mail::to($participant->email)
+                ->send(
+                    new RegistrationMail(
+                        $participant,
+                        $qrPath
+                    )
+                );
+        } catch (\Throwable $e) {
+
+            \Log::error($e);
+
+            return response()->json([
+                'message' => 'Email gagal dikirim',
+                'error' => $e->getMessage()
+            ], 500);
+        }
 
 
 
