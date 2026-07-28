@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Mail\RegistrationMail;
 use App\Models\Event;
 use App\Models\Participant;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Endroid\QrCode\Builder\Builder;
@@ -54,16 +52,6 @@ class ParticipantController extends Controller
                 ], 400);
             }
 
-            // Cek Email
-            if (
-                Participant::where('event_id', $event->id)
-                ->where('email', $validated['email'])
-                ->exists()
-            ) {
-                return response()->json([
-                    'message' => 'Email sudah digunakan pada event ini.'
-                ], 400);
-            }
 
             // Generate Token QR
             $qrToken = strtoupper(Str::random(10));
@@ -107,29 +95,6 @@ class ParticipantController extends Controller
 
             // Ambil URL Public QR
             $qrUrl = Storage::disk('s3')->url($participant->qr_image);
-
-            /*
-        |--------------------------------------------------------------------------
-        | Kirim Email
-        |--------------------------------------------------------------------------
-        */
-
-            try {
-
-                Mail::to($participant->email)
-                    ->send(new RegistrationMail($participant, $qrUrl));
-            } catch (\Throwable $mailException) {
-
-                Log::error('Gagal mengirim email ke '
-                    . $participant->email . ' : '
-                    . $mailException->getMessage());
-            }
-
-            return response()->json([
-                'message'     => 'Registrasi berhasil.',
-                'participant' => $participant->fresh(),
-                'qr_url'      => $qrUrl,
-            ], 201);
         } catch (\Throwable $e) {
 
             Log::error($e);
