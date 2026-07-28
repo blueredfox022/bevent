@@ -108,3 +108,10 @@ Route::get('/test-email', function () {
         'time' => microtime(true) - $start,
     ]);
 });
+Route::get('/dns-test', function () {
+
+    return [
+        'host' => gethostbyname('smtp.gmail.com'),
+        'dns' => dns_get_record('smtp.gmail.com', DNS_A),
+    ];
+});
