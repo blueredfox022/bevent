@@ -154,3 +154,16 @@ Route::get('/port-test', function () {
 
     return response()->json($results);
 });
+
+Route::get('/smtp-ip-test', function () {
+
+    $ip = '172.217.217.108'; // IP yang tadi didapat dari DNS
+
+    $fp = @fsockopen($ip, 587, $errno, $errstr, 10);
+
+    return [
+        'connected' => (bool) $fp,
+        'errno' => $errno,
+        'error' => $errstr,
+    ];
+});
