@@ -193,3 +193,15 @@ Route::get('/test-resend', function () {
         ], 500);
     }
 });
+
+
+use App\Services\BrevoService;
+
+Route::get('/test-brevo', function (BrevoService $brevo) {
+
+    return $brevo->send(
+        'emailanda@gmail.com',
+        'Test Brevo',
+        '<h1>Email berhasil</h1>'
+    );
+});
