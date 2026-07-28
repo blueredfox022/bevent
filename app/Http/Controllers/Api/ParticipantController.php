@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\Participant;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -94,7 +93,15 @@ class ParticipantController extends Controller
             ]);
 
             // Ambil URL Public QR
+            // Ambil URL Public QR
             $qrUrl = Storage::disk('s3')->url($participant->qr_image);
+
+
+            return response()->json([
+                'message' => 'Registrasi berhasil.',
+                'participant' => $participant->fresh(),
+                'qr_url' => $qrUrl,
+            ], 201);
         } catch (\Throwable $e) {
 
             Log::error($e);
@@ -153,51 +160,6 @@ class ParticipantController extends Controller
         return response()->json([
             'message' => 'Absensi berhasil.',
             'participant' => $participant
-        ]);
-    }
-
-    public function generateCertificate($id)
-    {
-        $participant = Participant::with('event')->findOrFail($id);
-
-        if (!$participant->event->use_certificate) {
-            return response()->json([
-                'message' => 'Event ini tidak menyediakan sertifikat.'
-            ], 400);
-        }
-
-        if (!$participant->attendance_status) {
-            return response()->json([
-                'message' => 'Peserta belum melakukan absensi.'
-            ], 400);
-        }
-
-
-        $pdf = Pdf::loadView(
-            'certificates.template',
-            compact('participant')
-        );
-
-
-        $path = 'certificates/certificate_'
-            . $participant->nim
-            . '.pdf';
-
-
-        Storage::disk('s3')->put(
-            $path,
-            $pdf->output()
-        );
-
-
-        $participant->update([
-            'certificate_file' => $path
-        ]);
-
-
-        return response()->json([
-            'message' => 'Sertifikat berhasil dibuat.',
-            'certificate_url' => Storage::disk('s3')->url($path)
         ]);
     }
 }
