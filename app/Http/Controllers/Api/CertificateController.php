@@ -15,8 +15,8 @@ class CertificateController extends Controller
      */
     public function create($id)
     {
-
         try {
+
             $participant = Participant::with('event')
                 ->findOrFail($id);
 
@@ -29,7 +29,7 @@ class CertificateController extends Controller
             }
 
 
-            // Cek apakah event memakai sertifikat
+            // Cek event menggunakan sertifikat
             if (!$participant->event->use_certificate) {
                 return response()->json([
                     'message' => 'Event ini tidak menyediakan sertifikat.'
@@ -42,10 +42,11 @@ class CertificateController extends Controller
                 $participant->certificate_file &&
                 Storage::disk('s3')->exists($participant->certificate_file)
             ) {
+
                 return response()->json([
                     'message' => 'Sertifikat sudah tersedia.',
-                    'download_url' => Storage::disk('s3')
-                        ->url($participant->certificate_file)
+                    'name' => $participant->name,
+                    'certificate_file' => $participant->certificate_file
                 ]);
             }
 
@@ -56,36 +57,38 @@ class CertificateController extends Controller
                 compact('participant')
             );
 
-            // path sertificates
+
+            // Path file
             $fileName = 'certificates/certificate_'
                 . $participant->id
                 . '.pdf';
 
 
-            // Simpan ke Supabase Storage
+            // Upload ke Supabase Storage
             Storage::disk('s3')->put(
                 $fileName,
                 $pdf->output()
             );
 
 
-            // Simpan path file
+            // Simpan path ke database
             $participant->update([
                 'certificate_file' => $fileName
             ]);
 
-            $fileUrl = Storage::disk('s3')->url($participant->certificate_file);
+
             return response()->json([
                 'message' => 'Sertifikat berhasil dibuat.',
-                'download_url' => $fileUrl,
+                'name' => $participant->name,
+                'certificate_file' => $fileName
             ]);
         } catch (\Throwable $e) {
 
             Log::error($e);
 
             return response()->json([
-                'message' => 'Terjadi kesalahan saat registrasi.',
-                'error'   => config('app.debug')
+                'message' => 'Terjadi kesalahan saat membuat sertifikat.',
+                'error' => config('app.debug')
                     ? $e->getMessage()
                     : null,
             ], 500);
@@ -122,6 +125,7 @@ class CertificateController extends Controller
             !Storage::disk('s3')
                 ->exists($participant->certificate_file)
         ) {
+
             return response()->json([
                 'message' => 'Sertifikat belum tersedia.'
             ], 400);
@@ -130,9 +134,7 @@ class CertificateController extends Controller
 
         return response()->json([
             'name' => $participant->name,
-
-            'download_url' => Storage::disk('s3')
-                ->url($participant->certificate_file)
+            'certificate_file' => $participant->certificate_file
         ]);
     }
 }
