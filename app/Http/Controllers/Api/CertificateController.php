@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Participant;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class CertificateController extends Controller
 {
@@ -14,69 +15,81 @@ class CertificateController extends Controller
      */
     public function create($id)
     {
-        $participant = Participant::with('event')
-            ->findOrFail($id);
+
+        try {
+            $participant = Participant::with('event')
+                ->findOrFail($id);
 
 
-        // Cek kehadiran
-        if (!$participant->attendance_status) {
-            return response()->json([
-                'message' => 'Peserta belum melakukan absensi.'
-            ], 400);
-        }
+            // Cek kehadiran
+            if (!$participant->attendance_status) {
+                return response()->json([
+                    'message' => 'Peserta belum melakukan absensi.'
+                ], 400);
+            }
 
 
-        // Cek apakah event memakai sertifikat
-        if (!$participant->event->use_certificate) {
-            return response()->json([
-                'message' => 'Event ini tidak menyediakan sertifikat.'
-            ], 400);
-        }
+            // Cek apakah event memakai sertifikat
+            if (!$participant->event->use_certificate) {
+                return response()->json([
+                    'message' => 'Event ini tidak menyediakan sertifikat.'
+                ], 400);
+            }
 
 
-        // Jika sertifikat sudah ada
-        if (
-            $participant->certificate_file &&
-            Storage::disk('s3')->exists($participant->certificate_file)
-        ) {
-            return response()->json([
-                'message' => 'Sertifikat sudah tersedia.',
-                'download_url' => Storage::disk('s3')
-                    ->url($participant->certificate_file)
+            // Jika sertifikat sudah ada
+            if (
+                $participant->certificate_file &&
+                Storage::disk('s3')->exists($participant->certificate_file)
+            ) {
+                return response()->json([
+                    'message' => 'Sertifikat sudah tersedia.',
+                    'download_url' => Storage::disk('s3')
+                        ->url($participant->certificate_file)
+                ]);
+            }
+
+
+            // Generate PDF
+            $pdf = Pdf::loadView(
+                'certificates.template',
+                compact('participant')
+            );
+
+            // path sertificates
+            $fileName = 'certificates/certificate_'
+                . $participant->id
+                . '.pdf';
+
+
+            // Simpan ke Supabase Storage
+            Storage::disk('s3')->put(
+                $fileName,
+                $pdf->output()
+            );
+
+
+            // Simpan path file
+            $participant->update([
+                'certificate_file' => $fileName
             ]);
+
+            $fileUrl = Storage::disk('s3')->url($participant->certificate_file);
+            return response()->json([
+                'message' => 'Sertifikat berhasil dibuat.',
+                'download_url' => $fileUrl,
+            ]);
+        } catch (\Throwable $e) {
+
+            Log::error($e);
+
+            return response()->json([
+                'message' => 'Terjadi kesalahan saat registrasi.',
+                'error'   => config('app.debug')
+                    ? $e->getMessage()
+                    : null,
+            ], 500);
         }
-
-
-        // Generate PDF
-        $pdf = Pdf::loadView(
-            'certificates.template',
-            compact('participant')
-        );
-
-
-        $fileName = 'certificates/certificate_'
-            . $participant->id
-            . '.pdf';
-
-
-        // Simpan ke Supabase Storage
-        Storage::disk('s3')->put(
-            $fileName,
-            $pdf->output()
-        );
-
-
-        // Simpan path file
-        $participant->update([
-            'certificate_file' => $fileName
-        ]);
-
-
-        return response()->json([
-            'message' => 'Sertifikat berhasil dibuat.',
-            'download_url' => Storage::disk('s3')
-                ->url($fileName)
-        ]);
     }
 
 

@@ -93,7 +93,6 @@ class ParticipantController extends Controller
             ]);
 
             // Ambil URL Public QR
-            // Ambil URL Public QR
             $qrUrl = Storage::disk('s3')->url($participant->qr_image);
 
 
