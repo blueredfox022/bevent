@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\ParticipantController;
 use App\Http\Controllers\Api\CertificateController;
 use Illuminate\Support\Facades\Mail;
+use App\Services\ResendService;
 
 /*
 |--------------------------------------------------------------------------
@@ -166,4 +167,29 @@ Route::get('/smtp-ip-test', function () {
         'errno' => $errno,
         'error' => $errstr,
     ];
+});
+
+
+Route::get('/test-resend', function () {
+
+    try {
+
+        Mail::raw('Halo! Ini adalah email percobaan menggunakan Resend.', function ($message) {
+
+            $message->to('emailanda@gmail.com')
+                ->subject('Resend Test');
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Email berhasil dikirim.'
+        ]);
+    } catch (\Throwable $e) {
+
+        return response()->json([
+            'success' => false,
+            'class' => get_class($e),
+            'message' => $e->getMessage(),
+        ], 500);
+    }
 });
