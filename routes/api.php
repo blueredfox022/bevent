@@ -115,3 +115,42 @@ Route::get('/dns-test', function () {
         'dns' => dns_get_record('smtp.gmail.com', DNS_A),
     ];
 });
+
+
+Route::get('/port-test', function () {
+
+    $tests = [
+        ['host' => 'google.com', 'port' => 443],
+        ['host' => 'smtp.gmail.com', 'port' => 587],
+        ['host' => 'smtp.gmail.com', 'port' => 465],
+    ];
+
+    $results = [];
+
+    foreach ($tests as $test) {
+        $start = microtime(true);
+
+        $fp = @fsockopen(
+            $test['host'],
+            $test['port'],
+            $errno,
+            $errstr,
+            10
+        );
+
+        $results[] = [
+            'host' => $test['host'],
+            'port' => $test['port'],
+            'connected' => (bool) $fp,
+            'errno' => $errno,
+            'error' => $errstr,
+            'time' => round(microtime(true) - $start, 2),
+        ];
+
+        if ($fp) {
+            fclose($fp);
+        }
+    }
+
+    return response()->json($results);
+});
