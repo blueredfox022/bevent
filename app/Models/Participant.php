@@ -12,11 +12,12 @@ class Participant extends Model
         'nim',
         'email',
         'phone',
-        'department',
         'faculty',
+        'department',
         'qr_token',
+        'qr_image',
+        'certificate_file',
         'attendance_status',
-        'qr_image'
     ];
 
     public function event()

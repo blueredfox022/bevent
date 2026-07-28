@@ -31,6 +31,10 @@ Route::get(
     '/participants/{id}/certificate',
     [ParticipantController::class, 'generateCertificate']
 );
+Route::get(
+    '/certificate/check/{nim}',
+    [CertificateController::class, 'check']
+);
 
 /*
 |--------------------------------------------------------------------------

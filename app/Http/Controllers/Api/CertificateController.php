@@ -9,6 +9,9 @@ use App\Mail\CertificateMail;
 use App\Models\Event;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Mail;
+use App\Models\Participant;
+use Illuminate\Support\Facades\Storage;
+
 
 class CertificateController extends Controller
 {
@@ -48,6 +51,40 @@ class CertificateController extends Controller
             'message' => 'Sertifikat berhasil dikirim',
             'total_sent' => $sent,
             'event' => $event->title,
+        ]);
+    }
+    public function check($nim)
+    {
+        $participant = Participant::where('nim', $nim)
+            ->first();
+
+
+        if (!$participant) {
+            return response()->json([
+                'message' => 'Data peserta tidak ditemukan.'
+            ], 404);
+        }
+
+
+        if (!$participant->attendance_status) {
+            return response()->json([
+                'message' => 'Peserta belum melakukan absensi.'
+            ], 400);
+        }
+
+
+        if (!$participant->certificate_file) {
+            return response()->json([
+                'message' => 'Sertifikat belum tersedia.'
+            ], 400);
+        }
+
+
+        return response()->json([
+            'name' => $participant->name,
+            'certificate_url' =>
+            Storage::disk('s3')
+                ->url($participant->certificate_file)
         ]);
     }
 }

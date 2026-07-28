@@ -160,7 +160,6 @@ class ParticipantController extends Controller
     {
         $participant = Participant::with('event')->findOrFail($id);
 
-        // Jika event tidak menggunakan sertifikat
         if (!$participant->event->use_certificate) {
             return response()->json([
                 'message' => 'Event ini tidak menyediakan sertifikat.'
@@ -173,8 +172,32 @@ class ParticipantController extends Controller
             ], 400);
         }
 
-        $pdf = Pdf::loadView('certificates.template', compact('participant'));
 
-        return $pdf->download('certificate-' . $participant->name . '.pdf');
+        $pdf = Pdf::loadView(
+            'certificates.template',
+            compact('participant')
+        );
+
+
+        $path = 'certificates/certificate_'
+            . $participant->nim
+            . '.pdf';
+
+
+        Storage::disk('s3')->put(
+            $path,
+            $pdf->output()
+        );
+
+
+        $participant->update([
+            'certificate_file' => $path
+        ]);
+
+
+        return response()->json([
+            'message' => 'Sertifikat berhasil dibuat.',
+            'certificate_url' => Storage::disk('s3')->url($path)
+        ]);
     }
 }
