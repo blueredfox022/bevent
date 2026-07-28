@@ -85,23 +85,26 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::get('/test-email', function () {
 
-    try {
+    $host = 'smtp.gmail.com';
+    $port = 587;
 
-        Mail::raw('Halo, ini adalah email percobaan dari aplikasi Event.', function ($message) {
+    $start = microtime(true);
 
-            $message->to('zulkiflisaleh022@gmail.com') // ganti dengan emailmu
-                ->subject('Test Email Laravel');
-        });
+    $fp = @fsockopen($host, $port, $errno, $errstr, 15);
 
+    if (!$fp) {
         return response()->json([
-            'success' => true,
-            'message' => 'Email berhasil dikirim.'
+            'connected' => false,
+            'errno' => $errno,
+            'error' => $errstr,
+            'time' => microtime(true) - $start,
         ]);
-    } catch (\Throwable $e) {
-
-        return response()->json([
-            'success' => false,
-            'message' => $e->getMessage(),
-        ], 500);
     }
+
+    fclose($fp);
+
+    return response()->json([
+        'connected' => true,
+        'time' => microtime(true) - $start,
+    ]);
 });
