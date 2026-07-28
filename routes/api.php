@@ -200,7 +200,7 @@ use App\Services\BrevoService;
 Route::get('/test-brevo', function (BrevoService $brevo) {
 
     return $brevo->send(
-        'emailanda@gmail.com',
+        'zulkiflisaleh022@gmail.com',
         'Test Brevo',
         '<h1>Email berhasil</h1>'
     );
