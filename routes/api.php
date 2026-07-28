@@ -176,7 +176,7 @@ Route::get('/test-resend', function () {
 
         Mail::raw('Halo! Ini adalah email percobaan menggunakan Resend.', function ($message) {
 
-            $message->to('emailanda@gmail.com')
+            $message->to('zulkiflisaleh022@gmail.com')
                 ->subject('Resend Test');
         });
 
@@ -204,4 +204,21 @@ Route::get('/test-brevo', function (BrevoService $brevo) {
         'Test Brevo',
         '<h1>Email berhasil</h1>'
     );
+});
+
+Route::get('/smtp-brevo-check', function () {
+
+    $fp = @fsockopen(
+        'smtp-relay.brevo.com',
+        587,
+        $errno,
+        $errstr,
+        10
+    );
+
+    return [
+        'connected' => (bool) $fp,
+        'errno' => $errno,
+        'error' => $errstr
+    ];
 });
